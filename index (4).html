@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Multiplication Grid</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        
+        .main-wrapper {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .mini-grid-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .mini-grid-container:empty {
+            display: none;
+        }
+        
+        .mini-grid-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .toggle-headers-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        
+        .toggle-headers-btn:hover {
+            background: #1976D2;
+        }
+        
+        .mini-grid-wrapper {
+            border: 2px solid #e0e0e0;
+            padding: 15px;
+            border-radius: 8px;
+            background: #fafafa;
+            position: relative;
+        }
+        
+        .mini-grid-wrapper.hide-headers .yellow {
+            display: none;
+        }
+        
+        .mini-grid-wrapper.hide-headers tr td:first-child {
+            display: none;
+        }
+        
+        .mini-grid-wrapper.hide-headers tr:first-child {
+            display: none;
+        }
+        
+        .mini-grid-title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .mini-grid-close {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 0;
+        }
+        
+        .mini-grid-close:hover {
+            background: #d32f2f;
+        }
+        
+        .mini-grid-wrapper table {
+            margin: 0 auto;
+        }
+        
+        .mini-grid-wrapper td {
+            width: 50px;
+            height: 40px;
+            font-size: 14px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .instructions {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        table {
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+        
+        td {
+            width: 60px;
+            height: 50px;
+            text-align: center;
+            vertical-align: middle;
+            border: 2px solid #333;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .yellow {
+            background-color: #ffeb3b;
+        }
+        
+        .light-yellow {
+            background-color: #fff9c4;
+        }
+        
+        .white {
+            background-color: white;
+        }
+        
+        .space-before-col {
+            border-left: 8px solid #f0f0f0 !important;
+        }
+        
+        .space-before-row {
+            border-top: 8px solid #f0f0f0 !important;
+        }
+        
+        .corner {
+            font-size: 24px;
+        }
+        
+        input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            box-sizing: border-box;
+            padding: 0;
+        }
+        
+        input:focus {
+            outline: 2px solid #2196F3;
+            outline-offset: -2px;
+        }
+        
+        .yellow input {
+            background-color: #ffeb3b;
+        }
+        
+        .light-yellow input {
+            background-color: #fff9c4;
+        }
+        
+        .result-cell {
+            cursor: pointer;
+        }
+        
+        .green {
+            background-color: #4CAF50 !important;
+        }
+        
+        .selected {
+            background-color: #2196F3 !important;
+            color: white;
+        }
+        
+        .hidden-value {
+            color: transparent;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper">
+        <div class="container">
+            <h1>Interactive Multiplication Grid</h1>
+            <div class="instructions">
+                Enter numbers or letters in the yellow cells of the last rows and columns. The grid will automatically calculate the products!<br>
+                <strong>Click any cell:</strong> 1st click = highlight green | 2nd click = hide value | 3rd click = restore<br>
+                <strong>Ctrl+Click cells:</strong> Select cells to form the four conrner of a rectangle - each rectangle creates a new mini grid
+            </div>
+            <table id="grid"></table>
+        </div>
+        <div class="mini-grid-container" id="miniGridContainer">
+        </div>
+    </div>
+
+    <script>
+        const SIZE = 11; // 10x10 grid plus headers
+        const EXTRA_SIZE = 12; // For the second editable row/column
+        const EXTRA_SIZE_2 = 13; // For the third editable row/column
+        
+        let selectionGroups = []; // Array of selection groups
+        let currentSelection = []; // Current cells being selected
+        let showHeaders = true; // Toggle state for mini grid headers
+        
+        function createGrid() {
+            const table = document.getElementById('grid');
+            table.innerHTML = '';
+            
+            for (let row = 0; row < SIZE; row++) {
+                const tr = document.createElement('tr');
+                
+                for (let col = 0; col < SIZE; col++) {
+                    const td = document.createElement('td');
+                    
+                    // Corner cell (×)
+                    if (row === 0 && col === 0) {
+                        td.className = 'yellow corner';
+                        td.textContent = '×';
+                    }
+                    // Top header row (1-10)
+                    else if (row === 0 && col > 0) {
+                        td.className = 'yellow';
+                        td.textContent = col;
+                        td.dataset.clickState = '0';
+                        td.style.cursor = 'pointer';
+                        td.addEventListener('click', handleCellClick);
+                    }
+                    // Left header column (1-10)
+                    else if (col === 0 && row > 0) {
+                        td.className = 'yellow';
+                        td.textContent = row;
+                        td.dataset.clickState = '0';
+                        td.style.cursor = 'pointer';
+                        td.addEventListener('click', handleCellClick);
+                    }
+                    // Regular multiplication cells
+                    else {
+                        td.className = 'white result-cell';
+                        td.textContent = row * col;
+                        td.dataset.row = row;
+                        td.dataset.col = col;
+                        td.dataset.clickState = '0'; // 0=normal, 1=green, 2=hidden
+                        td.addEventListener('click', handleCellClick);
+                    }
+                    
+                    tr.appendChild(td);
+                }
+                
+                table.appendChild(tr);
+            }
+            
+            // Add editable row at the bottom
+            addEditableRow();
+            // Add second editable row
+            addEditableRow(EXTRA_SIZE);
+            // Add third editable row
+            addEditableRow(EXTRA_SIZE_2);
+            // Add editable column on the right
+            addEditableColumn();
+            // Add second editable column
+            addEditableColumn(EXTRA_SIZE);
+            // Add third editable column
+            addEditableColumn(EXTRA_SIZE_2);
+        }
+        
+        function addEditableRow(index) {
+            const rowIndex = index || SIZE;
+            const table = document.getElementById('grid');
+            const tr = document.createElement('tr');
+            
+            // Add space before first user input row
+            if (rowIndex === SIZE) {
+                tr.classList.add('space-before-row');
+            }
+            
+            for (let col = 0; col < SIZE; col++) {
+                const td = document.createElement('td');
+                
+                if (col === 0) {
+                    td.className = 'light-yellow';
+                    td.style.cursor = 'pointer';
+                    td.dataset.clickState = '0';
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.dataset.type = 'row-header';
+                    input.dataset.index = rowIndex;
+                    input.addEventListener('input', function(e) {
+                        const cursorPos = e.target.selectionStart;
+                        const oldValue = e.target.value;
+                        const newValue = convertToCurlyX(oldValue);
+                        if (oldValue !== newValue) {
+                            e.target.value = newValue;
+                            e.target.setSelectionRange(cursorPos, cursorPos);
+                        }
+                        updateGrid();
+                    });
+                    td.appendChild(input);
+                    td.addEventListener('click', function(e) {
+                        if (e.target === td) {
+                            handleCellClick(e);
+                        }
+                    });
+                } else {
+                    td.className = 'white result-cell';
+                    td.dataset.row = rowIndex;
+                    td.dataset.col = col;
+                    td.dataset.clickState = '0';
+                    td.addEventListener('click', handleCellClick);
+                }
+                
+                tr.appendChild(td);
+            }
+            
+            table.appendChild(tr);
+        }
+        
+        function addEditableColumn(index) {
+            const colIndex = index || SIZE;
+            const table = document.getElementById('grid');
+            const rows = table.getElementsByTagName('tr');
+            
+            for (let row = 0; row < rows.length; row++) {
+                const td = document.createElement('td');
+                
+                // Add space before first user input column
+                if (colIndex === SIZE) {
+                    td.classList.add('space-before-col');
+                }
+                
+                if (row === 0) {
+                    td.className = td.className ? td.className + ' light-yellow' : 'light-yellow';
+                    td.style.cursor = 'pointer';
+                    td.dataset.clickState = '0';
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.dataset.type = 'col-header';
+                    input.dataset.index = colIndex;
+                    input.addEventListener('input', function(e) {
+                        const cursorPos = e.target.selectionStart;
+                        const oldValue = e.target.value;
+                        const newValue = convertToCurlyX(oldValue);
+                        if (oldValue !== newValue) {
+                            e.target.value = newValue;
+                            e.target.setSelectionRange(cursorPos, cursorPos);
+                        }
+                        updateGrid();
+                    });
+                    td.appendChild(input);
+                    td.addEventListener('click', function(e) {
+                        if (e.target === td) {
+                            handleCellClick(e);
+                        }
+                    });
+                } else {
+                    td.className = td.className ? td.className + ' white result-cell' : 'white result-cell';
+                    td.dataset.row = row;
+                    td.dataset.col = colIndex;
+                    td.dataset.clickState = '0';
+                    td.addEventListener('click', handleCellClick);
+                }
+                
+                rows[row].appendChild(td);
+            }
+        }
+        
+        function convertToCurlyX(value) {
+            // Replace x or X with curly x (𝓍)
+            return value.replace(/x/gi, '𝓍');
+        }
+        
+        function updateGrid() {
+            const table = document.getElementById('grid');
+            
+            // Get values from all editable headers
+            const rowHeaderInputs = table.querySelectorAll('input[data-type="row-header"]');
+            const colHeaderInputs = table.querySelectorAll('input[data-type="col-header"]');
+            
+            // Update cells for each editable row
+            rowHeaderInputs.forEach(input => {
+                const rowIndex = parseInt(input.dataset.index);
+                const rowValue = input.value.trim();
+                
+                if (rowValue) {
+                    // Get all column indices (1 to 10, SIZE, and EXTRA_SIZE)
+                    const allCols = Array.from({length: 10}, (_, i) => i + 1);
+                    colHeaderInputs.forEach(colInput => {
+                        allCols.push(parseInt(colInput.dataset.index));
+                    });
+                    
+                    allCols.forEach(col => {
+                        const cell = table.querySelector(`td[data-row="${rowIndex}"][data-col="${col}"]`);
+                        if (cell) {
+                            const headerValue = getHeaderValue(0, col);
+                            if (headerValue) {
+                                cell.textContent = multiplyValues(rowValue, headerValue);
+                            }
+                        }
+                    });
+                } else {
+                    // Clear cells if input is empty
+                    const cells = table.querySelectorAll(`td[data-row="${rowIndex}"]`);
+                    cells.forEach(cell => {
+                        if (cell.dataset.col != 0) {
+                            cell.textContent = '';
+                        }
+                    });
+                }
+            });
+            
+            // Update cells for each editable column
+            colHeaderInputs.forEach(input => {
+                const colIndex = parseInt(input.dataset.index);
+                const colValue = input.value.trim();
+                
+                if (colValue) {
+                    // Get all row indices (1 to 10, SIZE, and EXTRA_SIZE)
+                    const allRows = Array.from({length: 10}, (_, i) => i + 1);
+                    rowHeaderInputs.forEach(rowInput => {
+                        allRows.push(parseInt(rowInput.dataset.index));
+                    });
+                    
+                    allRows.forEach(row => {
+                        const cell = table.querySelector(`td[data-row="${row}"][data-col="${colIndex}"]`);
+                        if (cell) {
+                            const headerValue = getHeaderValue(row, 0);
+                            if (headerValue) {
+                                cell.textContent = multiplyValues(headerValue, colValue);
+                            }
+                        }
+                    });
+                } else {
+                    // Clear cells if input is empty
+                    const cells = table.querySelectorAll(`td[data-col="${colIndex}"]`);
+                    cells.forEach(cell => {
+                        if (cell.dataset.row != 0) {
+                            cell.textContent = '';
+                        }
+                    });
+                }
+            });
+        }
+        
+        function getHeaderValue(row, col) {
+            const table = document.getElementById('grid');
+            
+            if (row === 0) {
+                // Get column header
+                if (col < SIZE) {
+                    const rows = table.getElementsByTagName('tr');
+                    const cells = rows[0].getElementsByTagName('td');
+                    return cells[col].textContent;
+                } else {
+                    // Get value from input field (already converted)
+                    const input = table.querySelector(`input[data-type="col-header"][data-index="${col}"]`);
+                    return input ? input.value.trim() : '';
+                }
+            } else if (row < SIZE) {
+                // Get row header
+                const rows = table.getElementsByTagName('tr');
+                const cells = rows[row].getElementsByTagName('td');
+                return cells[0].textContent;
+            } else {
+                // Get value from input field (already converted)
+                const input = table.querySelector(`input[data-type="row-header"][data-index="${row}"]`);
+                return input ? input.value.trim() : '';
+            }
+        }
+        
+        function handleCellClick(event) {
+            const cell = event.target;
+            
+            // Check if Ctrl key is pressed for selection mode
+            if (event.ctrlKey || event.metaKey) {
+                handleCellSelection(cell);
+                return;
+            }
+            
+            const currentState = parseInt(cell.dataset.clickState);
+            
+            // Cycle through states: 0 (normal) -> 1 (green) -> 2 (hidden) -> 0 (normal)
+            const nextState = (currentState + 1) % 3;
+            cell.dataset.clickState = nextState;
+            
+            // Remove previous state classes
+            cell.classList.remove('green', 'hidden-value');
+            
+            // Apply new state
+            if (nextState === 1) {
+                // Green highlight
+                cell.classList.add('green');
+            } else if (nextState === 2) {
+                // Hidden value
+                cell.classList.add('hidden-value');
+            }
+            // nextState === 0 is normal state (no additional classes)
+            
+            // Refresh mini grids to reflect the change
+            renderAllMiniGrids();
+        }
+        
+        function handleCellSelection(cell) {
+            // Don't select header cells or input cells
+            if (!cell.dataset.row || !cell.dataset.col) return;
+            
+            const cellInfo = {
+                row: parseInt(cell.dataset.row),
+                col: parseInt(cell.dataset.col),
+                element: cell
+            };
+            
+            // Check if cell is in current selection
+            const existingIndex = currentSelection.findIndex(
+                c => c.row === cellInfo.row && c.col === cellInfo.col
+            );
+            
+            if (existingIndex >= 0) {
+                // Deselect from current selection
+                currentSelection.splice(existingIndex, 1);
+                cell.classList.remove('selected');
+            } else {
+                // Add to current selection
+                currentSelection.push(cellInfo);
+                cell.classList.add('selected');
+            }
+            
+            // Check if current selection forms a valid rectangle
+            checkAndCreateMiniGrid();
+        }
+        
+        function checkAndCreateMiniGrid() {
+            if (currentSelection.length < 4) return;
+            
+            const rows = [...new Set(currentSelection.map(c => c.row))].sort((a, b) => a - b);
+            const cols = [...new Set(currentSelection.map(c => c.col))].sort((a, b) => a - b);
+            
+            if (rows.length < 2 || cols.length < 2) return;
+            
+            // Check if we have all 4 corners
+            const corners = [
+                {row: rows[0], col: cols[0]},
+                {row: rows[0], col: cols[cols.length - 1]},
+                {row: rows[rows.length - 1], col: cols[0]},
+                {row: rows[rows.length - 1], col: cols[cols.length - 1]}
+            ];
+            
+            const hasAllCorners = corners.every(corner => 
+                currentSelection.some(cell => cell.row === corner.row && cell.col === corner.col)
+            );
+            
+            if (hasAllCorners) {
+                // Create a new selection group
+                const groupId = Date.now();
+                const newGroup = {
+                    id: groupId,
+                    rows: rows,
+                    cols: cols,
+                    cells: [...currentSelection]
+                };
+                
+                selectionGroups.push(newGroup);
+                
+                // Clear current selection visually but keep the cells marked for this group
+                currentSelection.forEach(c => {
+                    c.element.classList.remove('selected');
+                    c.element.dataset.groupId = groupId;
+                });
+                
+                currentSelection = [];
+                
+                renderAllMiniGrids();
+            }
+        }
+        
+        function renderAllMiniGrids() {
+            const container = document.getElementById('miniGridContainer');
+            container.innerHTML = '';
+            
+            if (selectionGroups.length === 0) return;
+            
+            // Add controls section with toggle button
+            const controls = document.createElement('div');
+            controls.className = 'mini-grid-controls';
+            
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'toggle-headers-btn';
+            toggleBtn.textContent = showHeaders ? 'Hide Headers' : 'Show Headers';
+            toggleBtn.onclick = toggleHeadersVisibility;
+            
+            controls.appendChild(toggleBtn);
+            container.appendChild(controls);
+            
+            selectionGroups.forEach((group, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'mini-grid-wrapper';
+                if (!showHeaders) {
+                    wrapper.classList.add('hide-headers');
+                }
+                wrapper.dataset.groupId = group.id;
+                
+                const title = document.createElement('div');
+                title.className = 'mini-grid-title';
+                title.textContent = `Rectangle ${index + 1}`;
+                
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'mini-grid-close';
+                closeBtn.innerHTML = '×';
+                closeBtn.onclick = () => removeMiniGrid(group.id);
+                
+                const table = document.createElement('table');
+                
+                // Add header row
+                const headerRow = document.createElement('tr');
+                const cornerCell = document.createElement('td');
+                cornerCell.className = 'yellow corner';
+                cornerCell.textContent = '×';
+                headerRow.appendChild(cornerCell);
+                
+                group.cols.forEach(col => {
+                    const td = document.createElement('td');
+                    td.className = 'yellow';
+                    td.textContent = getHeaderValue(0, col);
+                    headerRow.appendChild(td);
+                });
+                table.appendChild(headerRow);
+                
+                // Add data rows
+                group.rows.forEach(row => {
+                    const tr = document.createElement('tr');
+                    
+                    // Row header
+                    const headerCell = document.createElement('td');
+                    headerCell.className = 'yellow';
+                    headerCell.textContent = getHeaderValue(row, 0);
+                    tr.appendChild(headerCell);
+                    
+                    // Data cells
+                    group.cols.forEach(col => {
+                        const td = document.createElement('td');
+                        td.className = 'white';
+                        
+                        const originalCell = document.querySelector(
+                            `#grid td[data-row="${row}"][data-col="${col}"]`
+                        );
+                        if (originalCell) {
+                            td.textContent = originalCell.textContent;
+                            // Copy hidden state
+                            if (originalCell.classList.contains('hidden-value')) {
+                                td.classList.add('hidden-value');
+                            }
+                        }
+                        
+                        tr.appendChild(td);
+                    });
+                    
+                    table.appendChild(tr);
+                });
+                
+                wrapper.appendChild(closeBtn);
+                wrapper.appendChild(title);
+                wrapper.appendChild(table);
+                container.appendChild(wrapper);
+            });
+        }
+        
+        function toggleHeadersVisibility() {
+            showHeaders = !showHeaders;
+            renderAllMiniGrids();
+        }
+        
+        function removeMiniGrid(groupId) {
+            // Remove from selectionGroups
+            selectionGroups = selectionGroups.filter(g => g.id !== groupId);
+            
+            // Remove group marking from cells
+            const cells = document.querySelectorAll(`#grid td[data-group-id="${groupId}"]`);
+            cells.forEach(cell => {
+                delete cell.dataset.groupId;
+            });
+            
+            renderAllMiniGrids();
+        }
+        
+        function updateMiniGrid() {
+            // This function is no longer needed but keeping for compatibility
+        }
+        
+        function multiplyValues(val1, val2) {
+            const num1 = parseFloat(val1);
+            const num2 = parseFloat(val2);
+            
+            // If both are numbers, multiply them
+            if (!isNaN(num1) && !isNaN(num2)) {
+                return num1 * num2;
+            }
+            
+            // If one is a number and one is a letter/string
+            if (!isNaN(num1) && isNaN(num2)) {
+                if (num1 === 1) return val2;
+                return num1 + val2;
+            }
+            
+            if (isNaN(num1) && !isNaN(num2)) {
+                if (num2 === 1) return val1;
+                return num2 + val1;
+            }
+            
+            // If both are letters/strings
+            // Check if they're the same (case-insensitive for single characters)
+            const cleanVal1 = val1.trim();
+            const cleanVal2 = val2.trim();
+            
+            if (cleanVal1.length === 1 && cleanVal2.length === 1 && 
+                cleanVal1.toLowerCase() === cleanVal2.toLowerCase()) {
+                // Same letter - display as squared
+                return cleanVal1 + '²';
+            }
+            
+            // Check if both are curly x
+            if (cleanVal1 === '𝓍' && cleanVal2 === '𝓍') {
+                return '𝓍²';
+            }
+            
+            // Different letters - concatenate
+            return val1 + val2;
+        }
+        
+        // Initialize the grid
+        createGrid();
+    </script>
+</body>
+</html>
